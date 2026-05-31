@@ -8,9 +8,18 @@ import {
   verifyOtp,
   login,
   adminLogin,
+  forgotPassword,
+  verifyResetOtp,
+  resetPassword,
+  googleAuthRedirect,
+  googleAuthCallback,
 } from '../controllers/AuthController.js';
 
 const router = express.Router();
+
+// Custom Google OAuth Routes
+router.get('/google', googleAuthRedirect);
+router.get('/google/callback', googleAuthCallback);
 
 /**
  * @route   POST /api/auth/sync
@@ -59,5 +68,23 @@ router.post('/login', login);
  * @desc    Special Admin Login - seeds admin credentials and responds with cookies
  */
 router.post('/admin-login', adminLogin);
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Initiates forgot password flow - sends OTP if email exists
+ */
+router.post('/forgot-password', forgotPassword);
+
+/**
+ * @route   POST /api/auth/verify-reset-otp
+ * @desc    Verifies forgot password OTP and stores verification flag in cache
+ */
+router.post('/verify-reset-otp', verifyResetOtp);
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Resets the password and automatically logs the user in if OTP was verified
+ */
+router.post('/reset-password', resetPassword);
 
 export default router;

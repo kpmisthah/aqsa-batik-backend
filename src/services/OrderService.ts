@@ -104,6 +104,17 @@ class OrderService {
       paymentMethod: paymentMethod || 'Razorpay',
     });
 
+    // Update user default address fields
+    await User.findByIdAndUpdate(userId, {
+      $set: {
+        address: shippingAddress.address,
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        zip: shippingAddress.zip,
+        phone: shippingAddress.phone,
+      }
+    });
+
     if (paymentMethod === 'Wallet') {
       const userDoc = await User.findById(userId);
       if (!userDoc) throw new Error('User not found.');
@@ -319,18 +330,19 @@ class OrderService {
       
       // Automatically refund to wallet if payment was already made
       if (order.paymentStatus === 'Paid') {
-        const userIdToRefund = typeof order.user === 'object' ? order.user._id : order.user;
+        const userIdToRefund = (order.user && (order.user as any)._id) ? (order.user as any)._id : order.user;
         await User.findByIdAndUpdate(userIdToRefund, {
           $inc: { walletBalance: order.totalAmount },
           $push: {
             walletHistory: {
               type: 'Credit',
               amount: order.totalAmount,
-              description: `Refund for Cancelled Order #${order._id.toString().substring(18).toUpperCase()}`,
+              description: `Refund for Cancelled Order #${(order._id || order.id || '').toString().substring(18).toUpperCase()}`,
               date: new Date(),
             }
           }
         });
+        updates.paymentStatus = 'Refunded';
         console.log(`💰 Refunded ₹${order.totalAmount} to Wallet for User ${userIdToRefund}`);
       }
 
@@ -375,6 +387,7 @@ class OrderService {
     const updatedOrder = await this.orderRepository.update(orderId, {
       orderStatus: 'Cancelled',
       cancelReason: reason || 'Cancelled by buyer',
+      paymentStatus: order.paymentStatus === 'Paid' ? 'Refunded' : order.paymentStatus,
     });
 
     // Automatic stock restoral since order is cancelled
@@ -386,7 +399,7 @@ class OrderService {
 
     // Wallet Refund
     if (order.paymentStatus === 'Paid') {
-      const userIdToRefund = typeof order.user === 'object' ? order.user._id : order.user;
+      const userIdToRefund = (order.user && (order.user as any)._id) ? (order.user as any)._id : order.user;
       await User.findByIdAndUpdate(userIdToRefund, {
         $inc: { walletBalance: order.totalAmount },
         $push: {
@@ -472,7 +485,7 @@ class OrderService {
 
       // Wallet Refund
       if (order.paymentStatus === 'Paid') {
-        const userIdToRefund = typeof order.user === 'object' ? order.user._id : order.user;
+        const userIdToRefund = (order.user && (order.user as any)._id) ? (order.user as any)._id : order.user;
         await User.findByIdAndUpdate(userIdToRefund, {
           $inc: { walletBalance: order.totalAmount },
           $push: {
@@ -484,6 +497,7 @@ class OrderService {
             }
           }
         });
+        updates.paymentStatus = 'Refunded';
       }
     } else if (action === 'Reject') {
       updates.returnStatus = 'Rejected';

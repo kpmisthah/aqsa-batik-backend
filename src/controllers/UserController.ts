@@ -9,9 +9,10 @@ import userRepository from '../repositories/UserRepository.js';
  */
 const userService = new UserService(userRepository);
 
-export const getUsers = async (_req: Request, res: Response) => {
+export const getUsers = async (req: Request, res: Response) => {
   try {
-    const users = await userService.getAllUsers();
+    const { search } = req.query;
+    const users = await userService.getAllUsers(search as string);
     res.status(200).json(users);
   } catch (error: any) {
     res.status(500).json({ message: error.message });

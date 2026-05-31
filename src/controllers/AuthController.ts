@@ -58,7 +58,7 @@ export const syncClerkSession = async (req: Request, res: Response): Promise<any
       },
     });
   } catch (error: any) {
-    if (error.message === 'This account has been blocked.') {
+    if (error.message === 'Your account has been blocked by the admin. Please contact support.') {
       return res.status(403).json({ message: error.message });
     }
     res.status(500).json({ message: error.message });
@@ -139,6 +139,11 @@ export const getMe = async (req: Request, res: Response): Promise<any> => {
         avatar: (user as any).avatar,
         walletBalance: (user as any).walletBalance || 0,
         walletHistory: (user as any).walletHistory || [],
+        address: (user as any).address || '',
+        city: (user as any).city || '',
+        state: (user as any).state || '',
+        zip: (user as any).zip || '',
+        phone: (user as any).phone || '',
         createdAt: user.createdAt,
         lastLogin: user.lastLogin,
       },
@@ -251,6 +256,11 @@ export const login = async (req: Request, res: Response): Promise<any> => {
         avatar: (user as any).avatar,
         walletBalance: (user as any).walletBalance || 0,
         walletHistory: (user as any).walletHistory || [],
+        address: (user as any).address || '',
+        city: (user as any).city || '',
+        state: (user as any).state || '',
+        zip: (user as any).zip || '',
+        phone: (user as any).phone || '',
         createdAt: user.createdAt,
         lastLogin: user.lastLogin,
       },
@@ -259,7 +269,7 @@ export const login = async (req: Request, res: Response): Promise<any> => {
     if (error.message === 'user not exist') {
       return res.status(404).json({ message: error.message });
     }
-    if (error.message === 'This account has been blocked.') {
+    if (error.message === 'Your account has been blocked by the admin. Please contact support.') {
       return res.status(403).json({ message: error.message });
     }
     if (error.message === 'This account was created via social login. Please continue with Google.') {
@@ -312,7 +322,7 @@ export const adminLogin = async (req: Request, res: Response): Promise<any> => {
     }
 
     if (user.isBlocked) {
-      return res.status(403).json({ message: 'This account has been blocked.' });
+      return res.status(403).json({ message: 'Your account has been blocked by the admin. Please contact support.' });
     }
 
     // Verify password
@@ -364,3 +374,192 @@ export const adminLogin = async (req: Request, res: Response): Promise<any> => {
     res.status(500).json({ message: error.message || 'Server error during admin login.' });
   }
 };
+
+/**
+ * Initiate Forgot Password - checks email and sends reset OTP
+ */
+export const forgotPassword = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    await authService.forgotPassword(trimmedEmail);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset OTP sent successfully!',
+      email: trimmedEmail,
+    });
+  } catch (error: any) {
+    if (error.message === 'user not exist') {
+      return res.status(404).json({ message: 'User with this email does not exist.' });
+    }
+    if (error.message === 'Your account has been blocked by the admin. Please contact support.') {
+      return res.status(403).json({ message: error.message });
+    }
+    res.status(500).json({ message: error.message || 'Server error during forgot password.' });
+  }
+};
+
+/**
+ * Verify Password Reset OTP
+ */
+export const verifyResetOtp = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: 'Email and OTP code are required' });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    await authService.verifyResetOtp(trimmedEmail, otp);
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully! You can now reset your password.',
+      email: trimmedEmail,
+    });
+  } catch (error: any) {
+    if (error.message.includes('Invalid or expired OTP') || error.message.includes('Incorrect OTP')) {
+      return res.status(400).json({ message: error.message });
+    }
+    res.status(500).json({ message: error.message || 'Server error during OTP verification.' });
+  }
+};
+
+/**
+ * Reset Password using verified email flag
+ */
+export const resetPassword = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and new password are required' });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const { user, accessToken, refreshToken } = await authService.resetPassword(trimmedEmail, password);
+
+    // Set HTTP-Only cookies to automatically log the user in
+    setTokenCookies(res, accessToken, refreshToken);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password updated successfully! Logged in.',
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        avatar: (user as any).avatar,
+        walletBalance: (user as any).walletBalance || 0,
+        walletHistory: (user as any).walletHistory || [],
+        createdAt: user.createdAt,
+        lastLogin: user.lastLogin,
+      },
+    });
+  } catch (error: any) {
+    if (error.message === 'user not exist') {
+      return res.status(404).json({ message: error.message });
+    }
+    if (error.message.includes('OTP verification is required')) {
+      return res.status(400).json({ message: error.message });
+    }
+    res.status(500).json({ message: error.message || 'Server error during password reset.' });
+  }
+};
+
+/**
+ * Initiates Google OAuth flow by redirecting the user to Google's consent screen
+ */
+export const googleAuthRedirect = (req: Request, res: Response) => {
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  
+  if (!clientId) {
+    return res.redirect(`${clientUrl}/login?error=Google%20OAuth%20not%20configured%20on%20server`);
+  }
+  
+  const redirectUri = encodeURIComponent(`${backendUrl}/api/auth/google/callback`);
+  const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=profile%20email&prompt=select_account`;
+  
+  res.redirect(googleUrl);
+};
+
+/**
+ * Handles the Google OAuth callback, exchanges authorization code, gets profile, and logs user in
+ */
+export const googleAuthCallback = async (req: Request, res: Response): Promise<any> => {
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+  const { code } = req.query;
+  
+  if (!code) {
+    return res.redirect(`${clientUrl}/login?error=No%20authorization%20code%20provided`);
+  }
+  
+  try {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const redirectUri = `${backendUrl}/api/auth/google/callback`;
+    
+    // 1. Exchange authorization code for access token
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId || '',
+        client_secret: clientSecret || '',
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+        code: String(code),
+      }).toString(),
+    });
+    
+    const tokenData: any = await tokenResponse.json();
+    if (!tokenResponse.ok || !tokenData.access_token) {
+      return res.redirect(`${clientUrl}/login?error=Failed%20to%20exchange%20Google%20code`);
+    }
+    
+    // 2. Fetch user profile information using access token
+    const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    
+    const profileData: any = await profileResponse.json();
+    if (!profileResponse.ok || !profileData.email) {
+      return res.redirect(`${clientUrl}/login?error=Failed%20to%20fetch%20Google%20profile`);
+    }
+    
+    const email = profileData.email;
+    const name = profileData.name || email.split('@')[0] || 'Google User';
+    const avatar = profileData.picture || null;
+    const providerId = profileData.sub || `google_${Date.now()}`;
+    
+    // 3. Register or Login user in MongoDB
+    const { user, accessToken, refreshToken } = await authService.oauthLoginOrRegister(
+      email,
+      name,
+      avatar,
+      providerId
+    );
+    
+    // 4. Set tokens as HTTP-Only cookies
+    setTokenCookies(res, accessToken, refreshToken);
+    
+    // 5. Redirect user back to frontend home page
+    res.redirect(`${clientUrl}/`);
+  } catch (err: any) {
+    console.error('Google OAuth error:', err);
+    res.redirect(`${clientUrl}/login?error=${encodeURIComponent(err.message || 'Authentication failed')}`);
+  }
+};
+

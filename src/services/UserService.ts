@@ -8,8 +8,8 @@ import type { IUser, CreateUserDTO, UpdateUserDTO } from '../types/user.types.js
 class UserService {
   constructor(private readonly userRepository: IUserRepository) {}
 
-  async getAllUsers(): Promise<IUser[]> {
-    const result = await this.userRepository.findAll();
+  async getAllUsers(search?: string): Promise<IUser[]> {
+    const result = await this.userRepository.findAll(undefined, undefined, search);
     return result.data;
   }
 

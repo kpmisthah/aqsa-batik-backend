@@ -8,9 +8,18 @@ import type { PaginatedResult } from '../interfaces/IBaseRepository.js';
  * Concrete implementation of IUserRepository using Mongoose (DIP)
  */
 class UserRepository implements IUserRepository {
-  async findAll(page?: number, limit?: number): Promise<PaginatedResult<IUser>> {
+  async findAll(page?: number, limit?: number, search?: string): Promise<PaginatedResult<IUser>> {
+    const query: any = {};
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      query.$or = [
+        { name: searchRegex },
+        { email: searchRegex }
+      ];
+    }
+
     if (page === undefined || limit === undefined) {
-      const data = await User.find({}).sort({ createdAt: -1 });
+      const data = await User.find(query).sort({ createdAt: -1 });
       const total = data.length;
       return {
         data,
@@ -22,8 +31,8 @@ class UserRepository implements IUserRepository {
     }
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
-      User.find({}).skip(skip).limit(limit).sort({ createdAt: -1 }),
-      User.countDocuments({})
+      User.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }),
+      User.countDocuments(query)
     ]);
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }

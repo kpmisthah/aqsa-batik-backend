@@ -23,8 +23,8 @@ export interface IOrder {
   shippingAddress: IShippingAddress;
   paymentGatewayOrderId?: string;
   paymentId?: string;
-  paymentStatus: 'Pending' | 'Paid' | 'Failed';
-  paymentMethod: 'Razorpay' | 'COD';
+  paymentStatus: 'Pending' | 'Paid' | 'Failed' | 'Refunded';
+  paymentMethod: 'Razorpay' | 'COD' | 'Wallet';
   orderStatus: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Returned';
   cancelReason?: string;
   returnReason?: string;
@@ -39,14 +39,14 @@ export interface CreateOrderDTO {
   totalAmount: number;
   shippingAddress: IShippingAddress;
   paymentGatewayOrderId?: string;
-  paymentMethod?: 'Razorpay' | 'COD';
-  paymentStatus?: 'Pending' | 'Paid' | 'Failed';
+  paymentMethod?: 'Razorpay' | 'COD' | 'Wallet';
+  paymentStatus?: 'Pending' | 'Paid' | 'Failed' | 'Refunded';
 }
 
 export interface UpdateOrderDTO {
   paymentGatewayOrderId?: string;
   paymentId?: string;
-  paymentStatus?: 'Pending' | 'Paid' | 'Failed';
+  paymentStatus?: 'Pending' | 'Paid' | 'Failed' | 'Refunded';
   orderStatus?: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Returned';
   cancelReason?: string;
   returnReason?: string;

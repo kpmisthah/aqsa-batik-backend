@@ -1,4 +1,4 @@
-import type { IBaseRepository } from './IBaseRepository.js';
+import type { IBaseRepository, PaginatedResult } from './IBaseRepository.js';
 import type { IProduct, CreateProductDTO, UpdateProductDTO } from '../types/product.types.js';
 
 /**

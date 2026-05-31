@@ -42,6 +42,26 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    address: {
+      type: String,
+      default: '',
+    },
+    city: {
+      type: String,
+      default: '',
+    },
+    state: {
+      type: String,
+      default: '',
+    },
+    zip: {
+      type: String,
+      default: '',
+    },
+    phone: {
+      type: String,
+      default: '',
+    },
     walletBalance: {
       type: Number,
       default: 0,

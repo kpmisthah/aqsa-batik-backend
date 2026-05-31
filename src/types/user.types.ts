@@ -12,6 +12,11 @@ export interface IUser {
   lastLogin: string;
   isBlocked: boolean;
   avatar?: string | null;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  phone?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -26,6 +31,11 @@ export interface CreateUserDTO {
   lastLogin?: string;
   isBlocked?: boolean;
   avatar?: string | null;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  phone?: string;
 }
 
 export interface UpdateUserDTO {
@@ -38,6 +48,11 @@ export interface UpdateUserDTO {
   lastLogin?: string;
   isBlocked?: boolean;
   avatar?: string | null;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  phone?: string;
 }
 
 
