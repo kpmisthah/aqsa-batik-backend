@@ -11,8 +11,8 @@ import type { PaginatedResult } from '../interfaces/IBaseRepository.js';
 class ProductService {
   constructor(private readonly productRepository: IProductRepository) {}
 
-  async getAllProducts(page: number = 1, limit: number = 10, admin: boolean = false): Promise<PaginatedResult<IProduct>> {
-    return await this.productRepository.findAll(page, limit, admin);
+  async getAllProducts(page: number = 1, limit: number = 10, admin: boolean = false, category?: string, search?: string): Promise<PaginatedResult<IProduct>> {
+    return await this.productRepository.findAll(page, limit, admin, category, search);
   }
 
   async getProductById(id: string): Promise<IProduct | null> {

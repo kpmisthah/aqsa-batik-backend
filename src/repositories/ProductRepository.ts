@@ -9,9 +9,44 @@ import type { IProduct, CreateProductDTO, UpdateProductDTO } from '../types/prod
 import type { IBaseRepository, PaginatedResult } from '../interfaces/IBaseRepository.js';
 
 class ProductRepository implements IProductRepository {
-  async findAll(page: number = 1, limit: number = 10, admin: boolean = false): Promise<PaginatedResult<IProduct>> {
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    admin: boolean = false,
+    category?: string,
+    search?: string
+  ): Promise<PaginatedResult<IProduct>> {
     const skip = (page - 1) * limit;
-    const filter = admin ? {} : { isBlocked: false };
+    
+    const conditions: any[] = [];
+    if (!admin) {
+      conditions.push({ isBlocked: false });
+    }
+
+    if (category && category !== "All Categories") {
+      if (category === "Wholesale") {
+        conditions.push({
+          $or: [
+            { category: "Wholesale" },
+            { isWholesale: true }
+          ]
+        });
+      } else {
+        conditions.push({ category });
+      }
+    }
+
+    if (search) {
+      conditions.push({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { subCategory: { $regex: search, $options: 'i' } }
+        ]
+      });
+    }
+
+    const filter = conditions.length > 0 ? { $and: conditions } : {};
+
     const [data, total] = await Promise.all([
       Product.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
       Product.countDocuments(filter)

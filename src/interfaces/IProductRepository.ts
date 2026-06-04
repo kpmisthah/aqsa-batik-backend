@@ -6,5 +6,6 @@ import type { IProduct, CreateProductDTO, UpdateProductDTO } from '../types/prod
  * Extends the base with any product-specific query methods.
  */
 export interface IProductRepository extends IBaseRepository<IProduct, CreateProductDTO, UpdateProductDTO> {
-  findAll(page?: number, limit?: number, admin?: boolean): Promise<PaginatedResult<IProduct>>;
+  findAll(page?: number, limit?: number, admin?: boolean, category?: string, search?: string): Promise<PaginatedResult<IProduct>>;
 }
+
