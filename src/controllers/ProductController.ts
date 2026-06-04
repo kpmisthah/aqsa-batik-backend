@@ -14,7 +14,9 @@ export const getProducts = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const admin = req.query.admin === 'true';
-    const result = await productService.getAllProducts(page, limit, admin);
+    const category = req.query.category as string | undefined;
+    const search = req.query.search as string | undefined;
+    const result = await productService.getAllProducts(page, limit, admin, category, search);
     res.status(200).json(result);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
