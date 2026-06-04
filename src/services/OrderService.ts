@@ -317,6 +317,10 @@ class OrderService {
       throw new Error('Associated order record not found.');
     }
 
+    if (order.orderStatus === 'Delivered' && status === 'Cancelled') {
+      throw new Error('Delivered orders cannot be cancelled.');
+    }
+
     const updates: UpdateOrderDTO = {};
 
     // 1. Automatically restore inventory stock if transitioning into Cancelled from another state

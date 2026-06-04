@@ -16,6 +16,7 @@ const setTokenCookies = (res: Response, accessToken: string, refreshToken: strin
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 15 * 60 * 1000, // 15 minutes
+    path: '/',
   });
 
   res.cookie('refreshToken', refreshToken, {
@@ -23,6 +24,7 @@ const setTokenCookies = (res: Response, accessToken: string, refreshToken: strin
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/',
   });
 };
 
@@ -483,14 +485,14 @@ export const googleAuthRedirect = (req: Request, res: Response) => {
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
   const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  
+
   if (!clientId) {
     return res.redirect(`${clientUrl}/login?error=Google%20OAuth%20not%20configured%20on%20server`);
   }
-  
+
   const redirectUri = encodeURIComponent(`${backendUrl}/api/auth/google/callback`);
   const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=profile%20email&prompt=select_account`;
-  
+
   res.redirect(googleUrl);
 };
 
@@ -501,16 +503,16 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<a
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
   const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
   const { code } = req.query;
-  
+
   if (!code) {
     return res.redirect(`${clientUrl}/login?error=No%20authorization%20code%20provided`);
   }
-  
+
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const redirectUri = `${backendUrl}/api/auth/google/callback`;
-    
+
     // 1. Exchange authorization code for access token
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -523,27 +525,27 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<a
         code: String(code),
       }).toString(),
     });
-    
+
     const tokenData: any = await tokenResponse.json();
     if (!tokenResponse.ok || !tokenData.access_token) {
       return res.redirect(`${clientUrl}/login?error=Failed%20to%20exchange%20Google%20code`);
     }
-    
+
     // 2. Fetch user profile information using access token
     const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
-    
+
     const profileData: any = await profileResponse.json();
     if (!profileResponse.ok || !profileData.email) {
       return res.redirect(`${clientUrl}/login?error=Failed%20to%20fetch%20Google%20profile`);
     }
-    
+
     const email = profileData.email;
     const name = profileData.name || email.split('@')[0] || 'Google User';
     const avatar = profileData.picture || null;
     const providerId = profileData.sub || `google_${Date.now()}`;
-    
+
     // 3. Register or Login user in MongoDB
     const { user, accessToken, refreshToken } = await authService.oauthLoginOrRegister(
       email,
@@ -551,10 +553,10 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<a
       avatar,
       providerId
     );
-    
+
     // 4. Set tokens as HTTP-Only cookies
     setTokenCookies(res, accessToken, refreshToken);
-    
+
     // 5. Redirect user back to frontend home page
     res.redirect(`${clientUrl}/`);
   } catch (err: any) {
