@@ -64,9 +64,9 @@ export class AuthService {
   }
 
   /**
-   * General OAuth login/register handler (for custom Google/Facebook auth)
+   * General OAuth login handler (for custom Google/Facebook auth)
    */
-  async oauthLoginOrRegister(
+  async oauthLogin(
     email: string,
     name: string,
     avatar: string | null,
@@ -76,25 +76,17 @@ export class AuthService {
     let user = await this.userRepository.findByEmailOrClerkId(email, providerId);
 
     if (!user) {
-      user = await this.userRepository.create({
-        clerkId: providerId,
-        email,
-        name,
-        avatar,
-        role: 'Customer',
-        status: 'Active',
-        lastLogin: new Date().toISOString(),
-      });
-    } else {
-      // Update details
-      const updates: any = {
-        lastLogin: new Date().toISOString(),
-      };
-      if (!user.clerkId) updates.clerkId = providerId;
-      if (avatar && !user.avatar) updates.avatar = avatar;
-      
-      user = await this.userRepository.update(user.id!, updates) as IUser;
+      throw new Error('Account not found. Please sign up first to use Google Login.');
     }
+
+    // Update details
+    const updates: any = {
+      lastLogin: new Date().toISOString(),
+    };
+    if (!user.clerkId) updates.clerkId = providerId;
+    if (avatar && !user.avatar) updates.avatar = avatar;
+    
+    user = await this.userRepository.update(user.id!, updates) as IUser;
 
     if (user.isBlocked) {
       throw new Error('Your account has been blocked by the admin. Please contact support.');

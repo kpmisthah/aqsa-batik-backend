@@ -546,8 +546,8 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<a
     const avatar = profileData.picture || null;
     const providerId = profileData.sub || `google_${Date.now()}`;
 
-    // 3. Register or Login user in MongoDB
-    const { user, accessToken, refreshToken } = await authService.oauthLoginOrRegister(
+    // 3. Login user in MongoDB (requires existing account)
+    const { user, accessToken, refreshToken } = await authService.oauthLogin(
       email,
       name,
       avatar,
