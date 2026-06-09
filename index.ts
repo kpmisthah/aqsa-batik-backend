@@ -8,6 +8,7 @@ import userRoutes from './src/routes/user.routes.js';
 import uploadRoutes from './src/routes/upload.routes.js';
 import authRoutes from './src/routes/auth.routes.js';
 import orderRoutes from './src/routes/order.routes.js';
+import bannerRoutes from './src/routes/banner.routes.js';
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/banners', bannerRoutes);
 
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', message: 'Backend is running smoothly' });
