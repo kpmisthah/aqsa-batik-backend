@@ -12,7 +12,7 @@ router.post('/', upload.single('image'), (req: Request, res: Response): any => {
     }
 
     const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: 'batik_store_products' },
+      { folder: 'batik_store_products', timeout: 120000 },
       (error: any, result: any) => {
         if (error) {
           console.error(error);
@@ -43,7 +43,7 @@ router.post('/multiple', upload.array('images', 10), async (req: Request, res: R
     const uploadPromises = files.map((file) => {
       return new Promise<string>((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
-          { folder: 'batik_store_products' },
+          { folder: 'batik_store_products', timeout: 120000 },
           (error: any, result: any) => {
             if (error) reject(error);
             else resolve(result.secure_url);
