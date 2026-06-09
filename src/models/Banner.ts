@@ -6,7 +6,7 @@ const BannerSchema = new mongoose.Schema(
       type: String, 
       required: true, 
       unique: true,
-      enum: ['home', 'wholesale', 'new-arrivals', 'batik-suits', 'batik-fabric']
+      enum: ['home', 'wholesale', 'new-arrivals', 'batik-cloth', 'batik-fabric', 'about']
     },
     imageUrl: { type: String, required: true },
   },
