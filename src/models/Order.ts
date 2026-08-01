@@ -18,6 +18,18 @@ const orderSchema = new mongoose.Schema(
         quantity: { type: Number, required: true },
         variantColour: { type: String, default: '' },
         price: { type: Number, required: true }, // price at purchase in INR
+        itemStatus: { 
+          type: String, 
+          enum: ['Active', 'Cancelled', 'Returned'], 
+          default: 'Active' 
+        },
+        cancelReason: { type: String, default: '' },
+        returnReason: { type: String, default: '' },
+        returnStatus: { 
+          type: String, 
+          enum: ['None', 'Pending', 'Approved', 'Rejected'], 
+          default: 'None' 
+        },
       },
     ],
     totalAmount: {

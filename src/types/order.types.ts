@@ -4,6 +4,10 @@ export interface IOrderItem {
   quantity: number;
   variantColour?: string;
   price: number;
+  itemStatus?: 'Active' | 'Cancelled' | 'Returned';
+  cancelReason?: string;
+  returnReason?: string;
+  returnStatus?: 'None' | 'Pending' | 'Approved' | 'Rejected';
 }
 
 export interface IShippingAddress {
@@ -18,7 +22,7 @@ export interface IOrder {
   id?: string;
   _id?: string;
   user: any;
-  items: IOrderItem[];
+  items: (IOrderItem & { _id?: string, id?: string })[];
   totalAmount: number;
   shippingAddress: IShippingAddress;
   paymentGatewayOrderId?: string;
@@ -51,4 +55,5 @@ export interface UpdateOrderDTO {
   cancelReason?: string;
   returnReason?: string;
   returnStatus?: 'None' | 'Pending' | 'Approved' | 'Rejected';
+  items?: (IOrderItem & { _id?: string, id?: string })[];
 }

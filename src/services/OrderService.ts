@@ -28,7 +28,7 @@ const getProductPriceForUser = (product: any, role?: string): number => {
 };
 
 class OrderService {
-  constructor(private readonly orderRepository: IOrderRepository) {}
+  constructor(private readonly orderRepository: IOrderRepository) { }
 
   /**
    * 💳 Create Checkout Session & Razorpay Order
@@ -118,7 +118,7 @@ class OrderService {
     if (paymentMethod === 'Wallet') {
       const userDoc = await User.findById(userId);
       if (!userDoc) throw new Error('User not found.');
-      
+
       if ((userDoc.walletBalance || 0) < calculatedTotal) {
         throw new Error(`Insufficient wallet balance. You have ₹${userDoc.walletBalance || 0}, but the order total is ₹${calculatedTotal}.`);
       }
@@ -331,7 +331,7 @@ class OrderService {
           $inc: { quantity: item.quantity },
         });
       }
-      
+
       // Automatically refund to wallet if payment was already made
       if (order.paymentStatus === 'Paid') {
         const userIdToRefund = (order.user && (order.user as any)._id) ? (order.user as any)._id : order.user;
@@ -513,6 +513,117 @@ class OrderService {
     return {
       success: true,
       message: `Return request successfully ${action === 'Approve' ? 'approved' : 'rejected'}!`,
+      order: updatedOrder,
+    };
+  }
+
+  /**
+   * ❌ Customer: Cancel Individual Order Item (Partial Cancellation)
+   */
+  async cancelOrderItem(orderId: string, itemId: string, userId: string, userRole: string, reason?: string): Promise<any> {
+    const order = await this.orderRepository.findById(orderId);
+    if (!order) throw new Error('Associated order record not found.');
+
+    const isOwner = order.user.toString() === userId || (typeof order.user === 'object' && order.user._id?.toString() === userId);
+    if (!isOwner && userRole !== 'Admin') throw new Error('Security Alert! Unauthorized cancellation attempt.');
+
+    if (order.orderStatus !== 'Pending' && order.orderStatus !== 'Processing') {
+      throw new Error(`Orders marked '${order.orderStatus}' cannot have items cancelled.`);
+    }
+
+    const itemIndex = order.items.findIndex((item: any) => item._id?.toString() === itemId || item.id?.toString() === itemId);
+    if (itemIndex === -1) throw new Error('Item not found in order.');
+
+    const item = order.items[itemIndex];
+    if (!item) throw new Error('Item not found in order.');
+    if (item.itemStatus === 'Cancelled') throw new Error('This item is already cancelled.');
+
+    // Calculate item specific refund
+    const itemRefundAmount = item.price * item.quantity;
+    
+    // Update the items array
+    const updatedItems = [...order.items] as any[];
+    updatedItems[itemIndex] = {
+       ...updatedItems[itemIndex]._doc || updatedItems[itemIndex],
+       itemStatus: 'Cancelled',
+       cancelReason: reason || 'Cancelled by buyer'
+    };
+
+    // Check if ALL items are now cancelled
+    const allCancelled = updatedItems.every(i => i.itemStatus === 'Cancelled');
+    
+    const updates: any = { items: updatedItems };
+    if (allCancelled) {
+       updates.orderStatus = 'Cancelled';
+       updates.cancelReason = 'All items were individually cancelled.';
+       if (order.paymentStatus === 'Paid') updates.paymentStatus = 'Refunded';
+    }
+
+    const updatedOrder = await this.orderRepository.update(orderId, updates);
+
+    // Stock Restoral for this item
+    const Product = require('../models/Product.js').default;
+    await Product.findByIdAndUpdate(item.product, { $inc: { quantity: item.quantity } });
+
+    // Wallet Partial/Full Refund
+    if (order.paymentStatus === 'Paid') {
+      const User = require('../models/User.js').default;
+      const userIdToRefund = (order.user && (order.user as any)._id) ? (order.user as any)._id : order.user;
+      await User.findByIdAndUpdate(userIdToRefund, {
+        $inc: { walletBalance: itemRefundAmount },
+        $push: {
+          walletHistory: {
+            type: 'Credit',
+            amount: itemRefundAmount,
+            description: `Refund for Cancelled Item in Order #${orderId.substring(18).toUpperCase()}`,
+            date: new Date(),
+          }
+        }
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Item cancelled successfully and inventory restored!',
+      order: updatedOrder,
+    };
+  }
+
+  /**
+   * 🔄 Customer: Request Item Return
+   */
+  async requestOrderItemReturn(orderId: string, itemId: string, userId: string, reason: string): Promise<any> {
+    const order = await this.orderRepository.findById(orderId);
+    if (!order) throw new Error('Associated order record not found.');
+
+    const isOwner = order.user.toString() === userId || (typeof order.user === 'object' && order.user._id?.toString() === userId);
+    if (!isOwner) throw new Error('Security Alert! Unauthorized return attempt.');
+
+    if (order.orderStatus !== 'Delivered') {
+      throw new Error('Only successfully delivered orders are eligible for return.');
+    }
+
+    const itemIndex = order.items.findIndex((item: any) => item._id?.toString() === itemId || item.id?.toString() === itemId);
+    if (itemIndex === -1) throw new Error('Item not found in order.');
+
+    const item = order.items[itemIndex];
+    if (!item) throw new Error('Item not found in order.');
+    if (item.returnStatus && item.returnStatus !== 'None') {
+      throw new Error(`A return request has already been submitted for this item (Status: ${item.returnStatus}).`);
+    }
+
+    const updatedItems = [...order.items] as any[];
+    updatedItems[itemIndex] = {
+       ...updatedItems[itemIndex]._doc || updatedItems[itemIndex],
+       returnStatus: 'Pending',
+       returnReason: reason || 'No return reason provided'
+    };
+
+    const updatedOrder = await this.orderRepository.update(orderId, { items: updatedItems });
+
+    return {
+      success: true,
+      message: 'Return request for item submitted successfully!',
       order: updatedOrder,
     };
   }

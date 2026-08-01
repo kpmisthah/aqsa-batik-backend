@@ -8,7 +8,9 @@ import {
   updateOrderStatus,
   cancelOrder,
   requestOrderReturn,
-  verifyOrderReturn
+  verifyOrderReturn,
+  cancelOrderItem,
+  requestOrderItemReturn
 } from '../controllers/OrderController.js';
 import { protect } from '../middlewares/auth.middleware.js';
 
@@ -25,6 +27,8 @@ router.post('/:orderId/retry', retryOrderPayment);
 // Cancellation and Return requests (customer authenticated)
 router.post('/:orderId/cancel', cancelOrder);
 router.post('/:orderId/return', requestOrderReturn);
+router.post('/:orderId/items/:itemId/cancel', cancelOrderItem);
+router.post('/:orderId/items/:itemId/return', requestOrderItemReturn);
 
 // Admin-only order management endpoints
 router.get('/', getAllOrders);

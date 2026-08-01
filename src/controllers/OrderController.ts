@@ -190,3 +190,43 @@ export const verifyOrderReturn = async (req: Request, res: Response): Promise<an
     res.status(400).json({ message: error.message || 'Failed to verify return request.' });
   }
 };
+
+/**
+ * ❌ Customer: Cancel Individual Order Item
+ */
+export const cancelOrderItem = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const userId = (req as any).user?.id;
+    const orderId = req.params.orderId as string;
+    const itemId = req.params.itemId as string;
+    const { reason } = req.body;
+
+    if (!userId) return res.status(401).json({ message: 'User unauthorized.' });
+
+    const userRole = (req as any).user?.role || 'Customer';
+    const result = await orderService.cancelOrderItem(orderId, itemId, userId, userRole, reason);
+    
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message || 'Failed to cancel item.' });
+  }
+};
+
+/**
+ * 🔄 Customer: Request Individual Order Item Return
+ */
+export const requestOrderItemReturn = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const userId = (req as any).user?.id;
+    const orderId = req.params.orderId as string;
+    const itemId = req.params.itemId as string;
+    const { reason } = req.body;
+
+    if (!userId) return res.status(401).json({ message: 'User unauthorized.' });
+
+    const result = await orderService.requestOrderItemReturn(orderId, itemId, userId, reason);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message || 'Failed to submit item return request.' });
+  }
+};
