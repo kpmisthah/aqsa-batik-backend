@@ -14,7 +14,10 @@ class ProductRepository implements IProductRepository {
     limit: number = 10,
     admin: boolean = false,
     category?: string,
-    search?: string
+    search?: string,
+    sort?: string,
+    minPrice?: number,
+    maxPrice?: number
   ): Promise<PaginatedResult<IProduct>> {
     const skip = (page - 1) * limit;
     
@@ -31,6 +34,9 @@ class ProductRepository implements IProductRepository {
             { isWholesale: true }
           ]
         });
+      } else if (category.includes(',')) {
+        const catArray = category.split(',').map(c => c.trim());
+        conditions.push({ category: { $in: catArray } });
       } else {
         conditions.push({ category });
       }
@@ -40,15 +46,34 @@ class ProductRepository implements IProductRepository {
       conditions.push({
         $or: [
           { name: { $regex: search, $options: 'i' } },
-          { subCategory: { $regex: search, $options: 'i' } }
+          { subCategory: { $regex: search, $options: 'i' } },
+          { category: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { fabricDetails: { $regex: search, $options: 'i' } },
+          { colours: { $regex: search, $options: 'i' } }
         ]
       });
     }
 
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      const priceFilter: any = {};
+      if (minPrice !== undefined) priceFilter.$gte = minPrice;
+      if (maxPrice !== undefined) priceFilter.$lte = maxPrice;
+      conditions.push({ discountPrice: priceFilter });
+    }
+
     const filter = conditions.length > 0 ? { $and: conditions } : {};
 
+    let sortObj: any = { createdAt: -1 };
+    if (sort) {
+      if (sort === 'price_asc') sortObj = { discountPrice: 1 };
+      else if (sort === 'price_desc') sortObj = { discountPrice: -1 };
+      else if (sort === 'oldest') sortObj = { createdAt: 1 };
+      else if (sort === 'newest') sortObj = { createdAt: -1 };
+    }
+
     const [data, total] = await Promise.all([
-      Product.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+      Product.find(filter).skip(skip).limit(limit).sort(sortObj),
       Product.countDocuments(filter)
     ]);
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
@@ -61,6 +86,10 @@ class ProductRepository implements IProductRepository {
   async create(productData: CreateProductDTO): Promise<IProduct> {
     const product = new Product(productData);
     return await product.save();
+  }
+
+  async insertMany(productsData: CreateProductDTO[]): Promise<IProduct[]> {
+    return await Product.insertMany(productsData) as unknown as IProduct[];
   }
 
   async update(id: string, updateData: UpdateProductDTO): Promise<IProduct | null> {

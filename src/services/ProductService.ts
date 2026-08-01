@@ -11,8 +11,8 @@ import type { PaginatedResult } from '../interfaces/IBaseRepository.js';
 class ProductService {
   constructor(private readonly productRepository: IProductRepository) {}
 
-  async getAllProducts(page: number = 1, limit: number = 10, admin: boolean = false, category?: string, search?: string): Promise<PaginatedResult<IProduct>> {
-    return await this.productRepository.findAll(page, limit, admin, category, search);
+  async getAllProducts(page: number = 1, limit: number = 10, admin: boolean = false, category?: string, search?: string, sort?: string, minPrice?: number, maxPrice?: number): Promise<PaginatedResult<IProduct>> {
+    return await this.productRepository.findAll(page, limit, admin, category, search, sort, minPrice, maxPrice);
   }
 
   async getProductById(id: string): Promise<IProduct | null> {
@@ -22,6 +22,10 @@ class ProductService {
   async createProduct(data: CreateProductDTO): Promise<IProduct> {
     // Business validation can go here
     return await this.productRepository.create(data);
+  }
+
+  async createBulkProducts(data: CreateProductDTO[]): Promise<IProduct[]> {
+    return await this.productRepository.insertMany(data);
   }
 
   async updateProduct(id: string, data: UpdateProductDTO): Promise<IProduct | null> {

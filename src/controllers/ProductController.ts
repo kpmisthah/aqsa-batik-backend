@@ -16,7 +16,11 @@ export const getProducts = async (req: Request, res: Response) => {
     const admin = req.query.admin === 'true';
     const category = req.query.category as string | undefined;
     const search = req.query.search as string | undefined;
-    const result = await productService.getAllProducts(page, limit, admin, category, search);
+    const sort = req.query.sort as string | undefined;
+    const minPrice = req.query.minPrice ? parseInt(req.query.minPrice as string) : undefined;
+    const maxPrice = req.query.maxPrice ? parseInt(req.query.maxPrice as string) : undefined;
+
+    const result = await productService.getAllProducts(page, limit, admin, category, search, sort, minPrice, maxPrice);
     res.status(200).json(result);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -37,6 +41,18 @@ export const createProduct = async (req: Request, res: Response) => {
   try {
     const product = await productService.createProduct(req.body);
     res.status(201).json(product);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const createBulkProducts = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const items = req.body;
+    if (!Array.isArray(items)) return res.status(400).json({ message: 'Expected an array of products' });
+
+    const results = await productService.createBulkProducts(items);
+    res.status(201).json({ message: 'Bulk insert successful', count: results.length });
   } catch (error: any) {
     res.status(400).json({ message: error.message });
   }
