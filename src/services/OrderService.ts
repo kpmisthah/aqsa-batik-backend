@@ -540,34 +540,34 @@ class OrderService {
 
     // Calculate item specific refund
     const itemRefundAmount = item.price * item.quantity;
-    
+
     // Update the items array
     const updatedItems = [...order.items] as any[];
     updatedItems[itemIndex] = {
-       ...updatedItems[itemIndex]._doc || updatedItems[itemIndex],
-       itemStatus: 'Cancelled',
-       cancelReason: reason || 'Cancelled by buyer'
+      ...updatedItems[itemIndex]._doc || updatedItems[itemIndex],
+      itemStatus: 'Cancelled',
+      cancelReason: reason || 'Cancelled by buyer'
     };
 
     // Check if ALL items are now cancelled
     const allCancelled = updatedItems.every(i => i.itemStatus === 'Cancelled');
-    
+
     const updates: any = { items: updatedItems };
     if (allCancelled) {
-       updates.orderStatus = 'Cancelled';
-       updates.cancelReason = 'All items were individually cancelled.';
-       if (order.paymentStatus === 'Paid') updates.paymentStatus = 'Refunded';
+      updates.orderStatus = 'Cancelled';
+      updates.cancelReason = 'All items were individually cancelled.';
+      if (order.paymentStatus === 'Paid') updates.paymentStatus = 'Refunded';
     }
 
     const updatedOrder = await this.orderRepository.update(orderId, updates);
 
     // Stock Restoral for this item
-    const Product = require('../models/Product.js').default;
+    const Product = (await import('../models/Product.js')).default;
     await Product.findByIdAndUpdate(item.product, { $inc: { quantity: item.quantity } });
 
     // Wallet Partial/Full Refund
     if (order.paymentStatus === 'Paid') {
-      const User = require('../models/User.js').default;
+      const User = (await import('../models/User.js')).default;
       const userIdToRefund = (order.user && (order.user as any)._id) ? (order.user as any)._id : order.user;
       await User.findByIdAndUpdate(userIdToRefund, {
         $inc: { walletBalance: itemRefundAmount },
@@ -614,9 +614,9 @@ class OrderService {
 
     const updatedItems = [...order.items] as any[];
     updatedItems[itemIndex] = {
-       ...updatedItems[itemIndex]._doc || updatedItems[itemIndex],
-       returnStatus: 'Pending',
-       returnReason: reason || 'No return reason provided'
+      ...updatedItems[itemIndex]._doc || updatedItems[itemIndex],
+      returnStatus: 'Pending',
+      returnReason: reason || 'No return reason provided'
     };
 
     const updatedOrder = await this.orderRepository.update(orderId, { items: updatedItems });
