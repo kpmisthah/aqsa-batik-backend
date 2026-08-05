@@ -99,6 +99,19 @@ class ProductRepository implements IProductRepository {
   async delete(id: string): Promise<IProduct | null> {
     return await Product.findByIdAndDelete(id);
   }
+
+  async bulkUpdateInventory(updates: { id: string; quantity: number }[]): Promise<boolean> {
+    const bulkOps = updates.map((update) => ({
+      updateOne: {
+        filter: { _id: update.id },
+        update: { $set: { quantity: update.quantity } }
+      }
+    }));
+    if (bulkOps.length > 0) {
+      await Product.bulkWrite(bulkOps);
+    }
+    return true;
+  }
 }
 
 export default new ProductRepository();
