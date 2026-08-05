@@ -87,3 +87,15 @@ export const deleteProduct = async (req: Request, res: Response): Promise<any> =
     res.status(500).json({ message: error.message });
   }
 };
+
+export const bulkUpdateInventory = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { updates } = req.body;
+    if (!Array.isArray(updates)) return res.status(400).json({ message: 'Expected an array of updates' });
+
+    await productService.bulkUpdateInventory(updates);
+    res.status(200).json({ message: 'Inventory updated successfully' });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
