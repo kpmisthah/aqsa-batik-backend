@@ -41,6 +41,10 @@ class ProductService {
   async deleteProduct(id: string): Promise<IProduct | null> {
     return await this.productRepository.delete(id);
   }
+
+  async bulkUpdateInventory(updates: { id: string; quantity: number }[]): Promise<boolean> {
+    return await this.productRepository.bulkUpdateInventory(updates);
+  }
 }
 
 export default ProductService;
