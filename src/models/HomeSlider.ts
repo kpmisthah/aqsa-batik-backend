@@ -4,7 +4,6 @@ const HomeSliderSchema = new mongoose.Schema(
   {
     image: { type: String, default: '' },
     imageAlt: { type: String, default: 'Promo Banner' },
-    bgColor: { type: String, required: true, default: '#F4F1EA' },
     tagline: { type: String },
     
     title: { type: String, required: true },
