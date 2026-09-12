@@ -4,6 +4,15 @@ import Product from '../models/Product.js';
 import User from '../models/User.js';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
+import kloudShipService from './KloudShipService.js';
+
+/**
+ * Splits a single stored "name" field into first/last name for carrier labels.
+ */
+const splitName = (fullName?: string): { firstName: string; lastName: string } => {
+  const parts = (fullName || 'Customer').trim().split(/\s+/);
+  return { firstName: parts[0] || 'Customer', lastName: parts.slice(1).join(' ') };
+};
 
 // Initialize Razorpay SDK
 const razorpayKeyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholderKeyId';
@@ -94,12 +103,38 @@ class OrderService {
       }
     }
 
+    // 2b. Quote live shipping rate (authoritative — recalculated here, not trusted from client)
+    const shippingUser = await User.findById(userId);
+    const { firstName, lastName } = splitName(shippingUser?.name);
+    const rate = await kloudShipService.getCheapestRate({
+      addressTo: {
+        firstName,
+        lastName,
+        email: shippingUser?.email || '',
+        phone: shippingAddress.phone,
+        address: shippingAddress.address,
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        zip: shippingAddress.zip,
+      },
+      items: resolvedItems.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+    });
+    const shippingCost = Math.round(rate.totalFee);
+    calculatedTotal += shippingCost;
+
     // 3. Create Order document in DB
     const newOrder = await this.orderRepository.create({
       user: userId,
       items: resolvedItems,
       totalAmount: calculatedTotal,
       shippingAddress,
+      shippingCost,
+      shipping: {
+        carrierAccountId: rate.carrierAccountId,
+        carrier: rate.carrier,
+        service: rate.service,
+        estimatedDeliveryDays: rate.deliveryDaysEstimated,
+      },
       paymentStatus: 'Pending',
       paymentMethod: paymentMethod || 'Razorpay',
     });
@@ -148,6 +183,8 @@ class OrderService {
         });
       }
 
+      await this.fulfillShipment(newOrder.id!);
+
       return {
         success: true,
         message: 'Order placed successfully using Wallet Balance.',
@@ -164,6 +201,8 @@ class OrderService {
           $inc: { quantity: -item.quantity },
         });
       }
+
+      await this.fulfillShipment(newOrder.id!);
 
       return {
         success: true,
@@ -239,10 +278,148 @@ class OrderService {
       });
     }
 
+    await this.fulfillShipment(orderId);
+
     return {
       success: true,
       message: 'Payment verified and captured successfully!',
       order: updatedOrder,
+    };
+  }
+
+  /**
+   * 📦 Create the KloudShip shipment (label + tracking number) after payment
+   * succeeds. Non-fatal on failure — the order itself must not fail just
+   * because the carrier API had a hiccup; the error is stored for follow-up.
+   */
+  private async fulfillShipment(orderId: string): Promise<void> {
+    try {
+      const order = await this.orderRepository.findById(orderId);
+      if (!order) return;
+
+      const userDoc = await User.findById(order.user && (order.user as any)._id ? (order.user as any)._id : order.user);
+      const { firstName, lastName } = splitName(userDoc?.name);
+
+      const shipment = await kloudShipService.createShipment({
+        addressShipTo: {
+          firstName,
+          lastName,
+          email: userDoc?.email || '',
+          phone: order.shippingAddress.phone,
+          address: order.shippingAddress.address,
+          city: order.shippingAddress.city,
+          state: order.shippingAddress.state,
+          zip: order.shippingAddress.zip,
+        },
+        items: order.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+        carrierAccountId: order.shipping?.carrierAccountId || '',
+        service: order.shipping?.service || '',
+        orderCode: (order.id || order._id || orderId).toString(),
+      });
+
+      await this.orderRepository.update(orderId, {
+        shipping: {
+          ...order.shipping,
+          shipmentId: shipment.id,
+          trackingNumber: shipment.trackingNumber,
+          trackingUrl: shipment.trackingUrl,
+          labelUrl: shipment.labels?.[0]?.url,
+          processedStatus: shipment.processedStatus,
+        },
+      });
+    } catch (err: any) {
+      console.error(`KloudShip shipment creation failed for order ${orderId}:`, err.message);
+      const order = await this.orderRepository.findById(orderId);
+      await this.orderRepository.update(orderId, {
+        shipping: { ...order?.shipping, error: err.message },
+      }).catch(() => {});
+    }
+  }
+
+  /**
+   * 🚚 Quote a live shipping rate for the cart + destination address, shown
+   * at checkout before the order is placed. Recalculated authoritatively in
+   * createCheckoutSession, so this is display-only.
+   */
+  async getShippingRate(userId: string, userRole: string, items: any[], shippingAddress: any): Promise<any> {
+    if (!items || items.length === 0) {
+      throw new Error('Shopping cart is empty.');
+    }
+    if (!shippingAddress || !shippingAddress.address || !shippingAddress.phone || !shippingAddress.state) {
+      throw new Error('A complete shipping address is required to calculate shipping.');
+    }
+
+    const resolvedItems = [];
+    for (const cartItem of items) {
+      const product = await Product.findById(cartItem.productId);
+      if (!product || product.isBlocked) {
+        throw new Error(`Product not found: ${cartItem.name || 'Unknown'}`);
+      }
+      resolvedItems.push({
+        name: product.name,
+        quantity: cartItem.quantity,
+        price: getProductPriceForUser(product, userRole),
+      });
+    }
+
+    const userDoc = await User.findById(userId);
+    const { firstName, lastName } = splitName(userDoc?.name);
+
+    const rate = await kloudShipService.getCheapestRate({
+      addressTo: {
+        firstName,
+        lastName,
+        email: userDoc?.email || '',
+        phone: shippingAddress.phone,
+        address: shippingAddress.address,
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        zip: shippingAddress.zip,
+      },
+      items: resolvedItems,
+    });
+
+    return {
+      shippingCost: Math.round(rate.totalFee),
+      carrier: rate.carrier,
+      service: rate.service,
+      estimatedDeliveryDays: rate.deliveryDaysEstimated,
+    };
+  }
+
+  /**
+   * 📦 Fetch the latest tracking status for an order from KloudShip.
+   */
+  async getOrderTracking(orderId: string, userId: string, userRole: string): Promise<any> {
+    const order = await this.orderRepository.findById(orderId);
+    if (!order) {
+      throw new Error('Associated order record not found.');
+    }
+
+    const isOwner = order.user.toString() === userId || (typeof order.user === 'object' && order.user._id?.toString() === userId);
+    if (!isOwner && userRole !== 'Admin') {
+      throw new Error('Security Alert! Unauthorized access to this order.');
+    }
+
+    if (!order.shipping?.trackingNumber) {
+      return { status: 'NotShipped', message: 'This order has not been shipped yet.' };
+    }
+
+    const tracking = await kloudShipService.getTracking(order.shipping.trackingNumber);
+
+    if (tracking.processedStatus && tracking.processedStatus !== order.shipping.processedStatus) {
+      await this.orderRepository.update(orderId, {
+        shipping: { ...order.shipping, processedStatus: tracking.processedStatus },
+      });
+    }
+
+    return {
+      carrier: order.shipping.carrier,
+      trackingNumber: order.shipping.trackingNumber,
+      trackingUrl: order.shipping.trackingUrl,
+      processedStatus: tracking.processedStatus,
+      status: tracking.status,
+      events: tracking.events || [],
     };
   }
 
