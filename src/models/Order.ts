@@ -43,6 +43,22 @@ const orderSchema = new mongoose.Schema(
       zip: { type: String, required: true },
       phone: { type: String, required: true },
     },
+    shippingCost: {
+      type: Number,
+      default: 0,
+    },
+    shipping: {
+      carrierAccountId: { type: String },
+      carrier: { type: String },
+      service: { type: String },
+      shipmentId: { type: String },
+      trackingNumber: { type: String },
+      trackingUrl: { type: String },
+      labelUrl: { type: String },
+      processedStatus: { type: String },
+      estimatedDeliveryDays: { type: Number },
+      error: { type: String },
+    },
     paymentGatewayOrderId: {
       type: String,
       unique: true,
