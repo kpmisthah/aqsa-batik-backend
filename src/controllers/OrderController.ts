@@ -32,6 +32,49 @@ export const createCheckoutSession = async (req: Request, res: Response): Promis
 };
 
 /**
+ * 🚚 Quote a live shipping rate for the current cart + destination address
+ */
+export const getShippingRate = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const userId = (req as any).user?.id;
+    const userRole = (req as any).user?.role || 'Customer';
+
+    if (!userId) {
+      return res.status(401).json({ message: 'User unauthorized. Please login.' });
+    }
+
+    const { items, shippingAddress } = req.body;
+    const result = await orderService.getShippingRate(userId, userRole, items, shippingAddress);
+
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error('Shipping rate error:', error);
+    res.status(400).json({ message: error.message || 'Failed to calculate shipping rate.' });
+  }
+};
+
+/**
+ * 📦 Fetch the latest tracking status for an order
+ */
+export const getOrderTracking = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const userId = (req as any).user?.id;
+    const userRole = (req as any).user?.role || 'Customer';
+    const orderId = req.params.orderId as string;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'User unauthorized. Please login.' });
+    }
+
+    const result = await orderService.getOrderTracking(orderId, userId, userRole);
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error('Order tracking error:', error);
+    res.status(400).json({ message: error.message || 'Failed to fetch tracking status.' });
+  }
+};
+
+/**
  * 🔒 Verify Razorpay Payment Signature (SHA256 Hook)
  */
 export const verifyPayment = async (req: Request, res: Response): Promise<any> => {
