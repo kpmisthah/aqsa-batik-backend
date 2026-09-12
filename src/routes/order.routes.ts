@@ -1,16 +1,18 @@
 import express from 'express';
-import { 
-  createCheckoutSession, 
-  verifyPayment, 
-  getUserOrders, 
-  retryOrderPayment, 
-  getAllOrders, 
+import {
+  createCheckoutSession,
+  verifyPayment,
+  getUserOrders,
+  retryOrderPayment,
+  getAllOrders,
   updateOrderStatus,
   cancelOrder,
   requestOrderReturn,
   verifyOrderReturn,
   cancelOrderItem,
-  requestOrderItemReturn
+  requestOrderItemReturn,
+  getShippingRate,
+  getOrderTracking
 } from '../controllers/OrderController.js';
 import { protect } from '../middlewares/auth.middleware.js';
 
@@ -20,9 +22,11 @@ const router = express.Router();
 router.use(protect);
 
 router.post('/checkout', createCheckoutSession);
+router.post('/shipping-rate', getShippingRate);
 router.post('/verify', verifyPayment);
 router.get('/history', getUserOrders);
 router.post('/:orderId/retry', retryOrderPayment);
+router.get('/:orderId/tracking', getOrderTracking);
 
 // Cancellation and Return requests (customer authenticated)
 router.post('/:orderId/cancel', cancelOrder);
