@@ -18,6 +18,19 @@ export interface IShippingAddress {
   phone: string;
 }
 
+export interface IShippingInfo {
+  carrierAccountId?: string;
+  carrier?: string;
+  service?: string;
+  shipmentId?: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  labelUrl?: string;
+  processedStatus?: string;
+  estimatedDeliveryDays?: number;
+  error?: string;
+}
+
 export interface IOrder {
   id?: string;
   _id?: string;
@@ -25,6 +38,8 @@ export interface IOrder {
   items: (IOrderItem & { _id?: string, id?: string })[];
   totalAmount: number;
   shippingAddress: IShippingAddress;
+  shippingCost?: number;
+  shipping?: IShippingInfo;
   paymentGatewayOrderId?: string;
   paymentId?: string;
   paymentStatus: 'Pending' | 'Paid' | 'Failed' | 'Refunded';
@@ -42,6 +57,8 @@ export interface CreateOrderDTO {
   items: IOrderItem[];
   totalAmount: number;
   shippingAddress: IShippingAddress;
+  shippingCost?: number;
+  shipping?: IShippingInfo;
   paymentGatewayOrderId?: string;
   paymentMethod?: 'Razorpay' | 'COD' | 'Wallet';
   paymentStatus?: 'Pending' | 'Paid' | 'Failed' | 'Refunded';
@@ -56,4 +73,5 @@ export interface UpdateOrderDTO {
   returnReason?: string;
   returnStatus?: 'None' | 'Pending' | 'Approved' | 'Rejected';
   items?: (IOrderItem & { _id?: string, id?: string })[];
+  shipping?: IShippingInfo;
 }
