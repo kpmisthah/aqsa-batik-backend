@@ -22,13 +22,14 @@ export function getKloudshipConfig() {
       phone: process.env.KLOUDSHIP_PICKUP_PHONE || '',
       email: process.env.KLOUDSHIP_PICKUP_EMAIL || '',
     },
-    // Default package used until per-product weight/dimensions exist.
+    // Standard packaging for a single batik suit (16 x 13 x 2 in / 500 g).
+    // Used for every order until per-product dimensions are tracked.
     defaultPackage: {
-      length: 30,
-      width: 25,
-      height: 8,
+      length: 40.64,
+      width: 33.02,
+      height: 5.08,
       dimensionUnit: 'cm' as const,
-      unitWeightKg: 0.3,
+      unitWeightKg: 0.5,
       weightUnit: 'kg' as const,
       minWeightKg: 0.5,
     },
