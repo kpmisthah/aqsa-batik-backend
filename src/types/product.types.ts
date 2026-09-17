@@ -15,6 +15,20 @@ export interface IProduct {
   seoTitle?: string | null;
   metaDescription?: string | null;
   description?: string | null;
+  sku?: string;
+  slug?: string;
+  pattern?: string;
+  fabric?: string;
+  careInstructions?: string;
+  fabricQuality?: string;
+  kameezLength?: string;
+  shalwarLength?: string;
+  dupattaLength?: string;
+  discountPercentage?: string;
+  stockStatus?: string;
+  altText?: string;
+  tags?: string[];
+  minWholesaleQuantity?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -34,6 +48,20 @@ export interface CreateProductDTO {
   seoTitle?: string;
   metaDescription?: string;
   description?: string;
+  sku?: string;
+  slug?: string;
+  pattern?: string;
+  fabric?: string;
+  careInstructions?: string;
+  fabricQuality?: string;
+  kameezLength?: string;
+  shalwarLength?: string;
+  dupattaLength?: string;
+  discountPercentage?: string;
+  stockStatus?: string;
+  altText?: string;
+  tags?: string[];
+  minWholesaleQuantity?: number;
 }
 
 export interface UpdateProductDTO {
@@ -52,4 +80,18 @@ export interface UpdateProductDTO {
   seoTitle?: string;
   metaDescription?: string;
   description?: string;
+  sku?: string;
+  slug?: string;
+  pattern?: string;
+  fabric?: string;
+  careInstructions?: string;
+  fabricQuality?: string;
+  kameezLength?: string;
+  shalwarLength?: string;
+  dupattaLength?: string;
+  discountPercentage?: string;
+  stockStatus?: string;
+  altText?: string;
+  tags?: string[];
+  minWholesaleQuantity?: number;
 }

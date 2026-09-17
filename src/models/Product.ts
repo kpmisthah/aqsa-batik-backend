@@ -62,6 +62,62 @@ const productSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    sku: {
+      type: String,
+      default: '',
+    },
+    slug: {
+      type: String,
+      default: '',
+    },
+    pattern: {
+      type: String,
+      default: '',
+    },
+    fabric: {
+      type: String,
+      default: '',
+    },
+    careInstructions: {
+      type: String,
+      default: '',
+    },
+    fabricQuality: {
+      type: String,
+      default: '',
+    },
+    kameezLength: {
+      type: String,
+      default: '',
+    },
+    shalwarLength: {
+      type: String,
+      default: '',
+    },
+    dupattaLength: {
+      type: String,
+      default: '',
+    },
+    discountPercentage: {
+      type: String,
+      default: '',
+    },
+    stockStatus: {
+      type: String,
+      default: '',
+    },
+    altText: {
+      type: String,
+      default: '',
+    },
+    tags: {
+      type: [String],
+      default: [],
+    },
+    minWholesaleQuantity: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
