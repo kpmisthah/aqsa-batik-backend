@@ -9,5 +9,6 @@ export interface IProductRepository extends IBaseRepository<IProduct, CreateProd
   findAll(page?: number, limit?: number, admin?: boolean, category?: string, search?: string, sort?: string, minPrice?: number, maxPrice?: number): Promise<PaginatedResult<IProduct>>;
   insertMany(data: CreateProductDTO[]): Promise<IProduct[]>;
   bulkUpdateInventory(updates: { id: string; quantity: number }[]): Promise<boolean>;
+  getDistinctCategories(): Promise<string[]>;
 }
 

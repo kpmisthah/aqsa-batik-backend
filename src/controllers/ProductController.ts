@@ -27,6 +27,15 @@ export const getProducts = async (req: Request, res: Response) => {
   }
 };
 
+export const getCategories = async (req: Request, res: Response) => {
+  try {
+    const categories = await productService.getDistinctCategories();
+    res.status(200).json({ categories });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getProductById = async (req: Request, res: Response): Promise<any> => {
   try {
     const product = await productService.getProductById(req.params.id as string);

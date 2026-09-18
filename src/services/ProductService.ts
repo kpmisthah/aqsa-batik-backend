@@ -19,6 +19,10 @@ class ProductService {
     return await this.productRepository.findById(id);
   }
 
+  async getDistinctCategories(): Promise<string[]> {
+    return await this.productRepository.getDistinctCategories();
+  }
+
   async createProduct(data: CreateProductDTO): Promise<IProduct> {
     // Business validation can go here
     return await this.productRepository.create(data);

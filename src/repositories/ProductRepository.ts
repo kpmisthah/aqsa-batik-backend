@@ -8,6 +8,12 @@ import type { IProduct, CreateProductDTO, UpdateProductDTO } from '../types/prod
  */
 import type { IBaseRepository, PaginatedResult } from '../interfaces/IBaseRepository.js';
 
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Case-insensitive exact match, since category values are typed manually into CSVs
+// and casing (e.g. "Ethnic Wear" vs "ethnic wear") can't be relied on to match exactly.
+const categoryRegex = (value: string) => new RegExp(`^${escapeRegex(value.trim())}$`, 'i');
+
 class ProductRepository implements IProductRepository {
   async findAll(
     page: number = 1,
@@ -30,15 +36,15 @@ class ProductRepository implements IProductRepository {
       if (category === "Wholesale") {
         conditions.push({
           $or: [
-            { category: "Wholesale" },
+            { category: categoryRegex("Wholesale") },
             { isWholesale: true }
           ]
         });
       } else if (category.includes(',')) {
-        const catArray = category.split(',').map(c => c.trim());
+        const catArray = category.split(',').map(c => categoryRegex(c));
         conditions.push({ category: { $in: catArray } });
       } else {
-        conditions.push({ category });
+        conditions.push({ category: categoryRegex(category) });
       }
     }
 
@@ -81,6 +87,11 @@ class ProductRepository implements IProductRepository {
 
   async findById(id: string): Promise<IProduct | null> {
     return await Product.findById(id);
+  }
+
+  async getDistinctCategories(): Promise<string[]> {
+    const categories = await Product.distinct('category');
+    return categories.filter(Boolean).sort();
   }
 
   async create(productData: CreateProductDTO): Promise<IProduct> {
