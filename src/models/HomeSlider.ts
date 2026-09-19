@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 const HomeSliderSchema = new mongoose.Schema(
   {
     image: { type: String, default: '' },
+    mobileImage: { type: String, default: '' },
+    mobileImagePosition: { type: String, default: '' },
     imageAlt: { type: String, default: 'Promo Banner' },
     tagline: { type: String },
     
@@ -12,7 +14,8 @@ const HomeSliderSchema = new mongoose.Schema(
     subtitle: { type: String, default: '' },
     description: { type: String, default: '' },
     badge: { type: String },
-    
+    bgColor: { type: String, default: '' },
+
     primaryButtonLabel: { type: String, default: 'SHOP NOW' },
     primaryButtonLink: { type: String, default: '/collections' },
     

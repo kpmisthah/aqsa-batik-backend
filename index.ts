@@ -12,6 +12,7 @@ import bannerRoutes from './src/routes/banner.routes.js';
 import wishlistRoutes from './src/routes/wishlist.routes.js';
 import blogRoutes from './src/routes/blog.routes.js';
 import homeSliderRoutes from './src/routes/homeSlider.routes.js';
+import homeContentRoutes from './src/routes/homeContent.routes.js';
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ app.use('/api/banners', bannerRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/home-slider', homeSliderRoutes);
+app.use('/api/home-content', homeContentRoutes);
 
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', message: 'Backend is running smoothly' });

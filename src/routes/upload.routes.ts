@@ -5,22 +5,24 @@ import AdmZip from 'adm-zip';
 
 const router = express.Router();
 
-// Single image upload
+// Single image (or video) upload
 router.post('/', upload.single('image'), async (req: Request, res: Response): Promise<any> => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: 'No image uploaded' });
+      return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    const isVideo = req.file.mimetype.startsWith('video/');
     const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-    const result = await cloudinary.uploader.upload(fileBase64, { 
-      folder: 'batik_store_products', 
-      timeout: 120000 
+    const result = await cloudinary.uploader.upload(fileBase64, {
+      folder: 'batik_store_products',
+      resource_type: isVideo ? 'video' : 'image',
+      timeout: isVideo ? 300000 : 120000
     });
 
-    res.status(200).json({ 
-      message: 'Image uploaded successfully', 
-      imageUrl: result.secure_url 
+    res.status(200).json({
+      message: isVideo ? 'Video uploaded successfully' : 'Image uploaded successfully',
+      imageUrl: result.secure_url
     });
   } catch (error: any) {
     console.error(error);
